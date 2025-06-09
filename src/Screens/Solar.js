@@ -236,7 +236,7 @@ const Solar = ({ BaseUrl }) => {
                             </div>
                             <div>
                                 <p className="text-xs xl:text-sm text-[#959999] pb-1 m-0">Total Capacity</p>
-                                <p className="text-sm xl:text-base m-0">145 kW</p>
+                                <p className="text-sm xl:text-base m-0">140 kW</p>
                             </div>
                         </div>
                     </div>

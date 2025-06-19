@@ -64,7 +64,7 @@ const Overview = ({ BaseUrl }) => {
 
         const interval = setInterval(() => {
             fetchConfig();
-        }, 5000);
+        }, 900000);
 
         return () => clearInterval(interval);
     }, []);
@@ -115,144 +115,276 @@ const Overview = ({ BaseUrl }) => {
         console.error('Image failed to load');
     };
 
-    const displayDataCurveGraph = (data) => {
+   const displayDataCurveGraph = (data) => {
         if (!myDatavizRef.current || !myDatavizRef.current.parentElement) {
             console.error("Graph container or its parent doesn't exist.");
             return;
         }
 
-        d3.select(myDatavizRef.current).selectAll('svg').remove();
+        const margin = { top: 10, right: 20, bottom: 40, left: 20 };
+        d3.select(myDatavizRef.current).selectAll("svg").remove();
 
-        const margin = { top: 20, right: 30, bottom: 20, left: 20 };
-        const width = myDatavizRef.current.parentElement.offsetWidth
-            ? myDatavizRef.current.parentElement.offsetWidth - margin.left - margin.right
-            : 500;
-        const height = myDatavizRef.current.parentElement.offsetHeight - margin.top - margin.bottom;
+        const container = myDatavizRef.current.parentElement;
+        const width = container.offsetWidth - margin.left - margin.right - 60;
+        const height = container.offsetHeight - margin.top - margin.bottom - 70;
 
-        if (width <= 0) {
-            console.error("Parent element has zero width.");
+        if (width <= 0 || height <= 0) {
+            console.error("Container has insufficient dimensions.");
             return;
         }
 
-        const svg = d3.select(myDatavizRef.current)
-            .append('svg')
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom)
-            .append('g')
-            .attr('transform', `translate(${margin.left},${margin.top})`);
+        // Create SVG with proper viewBox for responsive scaling
+        const svg = d3
+            .select(myDatavizRef.current)
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr(
+                "viewBox",
+                `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom
+                }`
+            )
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
         // Calculate dynamic x-axis domain based on data
         const now = new Date();
         const currentHour = now.getHours();
-        const pastHour = currentHour - 8 < 0 ? 24 + (currentHour - 8) : currentHour - 8;
+        const pastHour =
+            currentHour - 8 < 0 ? 24 + (currentHour - 8) : currentHour - 8;
 
-        const x = d3.scaleLinear()
+        // Initialize scales with proper ranges from the start
+        const x = d3
+            .scaleLinear()
             .domain([pastHour, currentHour])
             .range([0, width]);
 
-        const y = d3.scaleLinear()
-            .domain([0, d3.max(data, d => +d.kwh_reading)]).nice()
+        const y = d3
+            .scaleLinear()
+            .domain([0, d3.max(data, (d) => +d.kwh_reading)])
+            .nice()
             .range([height, 0]);
 
         // Define a clip path to restrict the curve and area to the chart area
-        svg.append("defs")
+        svg
+            .append("defs")
             .append("clipPath")
             .attr("id", "clip")
             .append("rect")
             .attr("width", width)
-            .attr("height", height);
+            .attr("height", height)
+            .attr("x", 0)
+            .attr("y", 0);
 
-        // X axis
-        svg.append('g')
-            .attr('transform', `translate(0, ${height})`)
-            .call(d3.axisBottom(x).ticks(9).tickFormat(d => formatAMPM(d)))
-            .selectAll('text')
-            .style('fill', 'white')
-            .style('font-size', width > 500 ? '14px' : '10px');
+        // Add axes
+        svg
+            .append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0, ${height})`)
+            .call(
+                d3
+                    .axisBottom(x)
+                    .ticks(9)
+                    .tickSizeOuter(0)
+                    .tickFormat((d) => formatAMPM(d))
+            )
+            .selectAll("text")
+            .style("fill", "white")
+            .style("font-size", width > 500 ? "14px" : "10px");
 
-        // Y axis
-        svg.append('g')
-            .call(d3.axisLeft(y).ticks(5).tickFormat(() => ''))
-            .selectAll('text')
-            .style('fill', 'white');
-
-        // Add curve
-        svg.append('path')
-            .datum(data)
-            .attr('clip-path', 'url(#clip)')
-            .attr('class', 'curve') // Add this class for tooltip events
-            .attr('fill', 'none')
-            .attr('stroke', '#68BFB6')
-            .attr('stroke-width', 2)
-            .attr('d', d3.line()
-                .x(d => x(d.hour))
-                .y(d => y(+d.kwh_reading))
-                .curve(d3.curveBasis)
-            );
+        svg
+            .append("g")
+            .attr("class", "y-axis")
+            .call(
+                d3
+                    .axisLeft(y)
+                    .ticks(5)
+                    .tickSize(4)
+                    .tickFormat(() => "")
+            )
+            .selectAll("text")
+            .style("fill", "white");
 
         // Define gradient
-        const gradient = svg.append('defs')
-            .append('linearGradient')
-            .attr('id', 'shadowGradient')
-            .attr('x1', '0%')
-            .attr('y1', '0%')
-            .attr('x2', '0%')
-            .attr('y2', '100%');
+        const gradient = svg
+            .append("defs")
+            .append("linearGradient")
+            .attr("id", "shadowGradient")
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "0%")
+            .attr("y2", "100%");
 
-        gradient.append('stop')
-            .attr('offset', '0%')
-            .attr('stop-color', '#0A3D38')
-            .attr('stop-opacity', 0.9);
+        gradient
+            .append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#0A3D38")
+            .attr("stop-opacity", 0.9);
 
-        gradient.append('stop')
-            .attr('offset', '80%')
-            .attr('stop-color', '#0A3D38')
-            .attr('stop-opacity', 0);
+        gradient
+            .append("stop")
+            .attr("offset", "80%")
+            .attr("stop-color", "#0A3D38")
+            .attr("stop-opacity", 0);
+
+        // Add curve
+        svg
+            .append("path")
+            .datum(data)
+            .attr("class", "curve")
+            .attr("fill", "none")
+            .attr("stroke", "#68BFB6")
+            .attr("stroke-width", 2)
+            .attr("clip-path", "url(#clip)")
+            .attr(
+                "d",
+                d3
+                    .line()
+                    .x((d) => x(d.hour))
+                    .y((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
 
         // Add shadow beneath the curve
-        svg.append('path')
+        svg
+            .append("path")
             .datum(data)
-            .attr('clip-path', 'url(#clip)')
-            .attr('class', 'shadow') // Add this class for tooltip events
-            .attr('fill', 'url(#shadowGradient)')
-            .attr('stroke-width', 0)
-            .attr('d', d3.area()
-                .x(d => x(d.hour))
-                .y0(height)
-                .y1(d => y(+d.kwh_reading))
-                .curve(d3.curveBasis)
+            .attr("class", "shadow")
+            .attr("fill", "url(#shadowGradient)")
+            .attr("stroke-width", 0)
+            .attr("clip-path", "url(#clip)")
+            .attr(
+                "d",
+                d3
+                    .area()
+                    .x((d) => x(d.hour))
+                    .y0(height)
+                    .y1((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
             );
 
         // Tooltip setup
         if (!tooltipRef.current) {
-            tooltipRef.current = d3.select('body')
-                .append('div')
-                .attr('class', 'tooltip')
-                .style('opacity', 0);
+            tooltipRef.current = d3
+                .select("body")
+                .append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
         }
 
         // Add event listeners to the curve and shadow
-        svg.selectAll('.curve, .shadow')
-            .on('mousemove', function (event) {
-                const [mouseX] = d3.pointer(event); // Get mouse position relative to the graph
-                const bisect = d3.bisector(d => d.hour).left; // Use 'left' for nearest index
-                const xValue = x.invert(mouseX); // Convert mouseX to data's x domain value
+        svg
+            .selectAll(".curve, .shadow")
+            .on("mousemove", function (event) {
+                const [mouseX] = d3.pointer(event);
+                const bisect = d3.bisector((d) => d.hour).left;
+                const xValue = x.invert(mouseX);
                 const index = bisect(data, xValue);
                 const dLeft = data[index - 1];
                 const dRight = data[index];
-                const dClosest = !dRight || (xValue - dLeft.hour < dRight.hour - xValue) ? dLeft : dRight;
+                const dClosest =
+                    !dRight || xValue - dLeft.hour < dRight.hour - xValue
+                        ? dLeft
+                        : dRight;
 
                 if (dClosest) {
                     tooltipRef.current
-                        .style('opacity', 0.9)
-                        .html(`Hour: ${formatAMPM(dClosest.hour)}, Power: ${dClosest.kwh_reading}`)
-                        .style('left', `${event.pageX + 10}px`)
-                        .style('top', `${event.pageY - 28}px`);
+                        .style("opacity", 0.9)
+                        .html(
+                            `Hour: ${formatAMPM(dClosest.hour)}, Power: ${dClosest.kwh_reading
+                            }`
+                        )
+                        .style("left", `${event.pageX + 10}px`)
+                        .style("top", `${event.pageY - 28}px`);
                 }
             })
-            .on('mouseout', function () {
-                tooltipRef.current.style('opacity', 0);
+            .on("mouseout", function () {
+                tooltipRef.current.style("opacity", 0);
             });
+
+        // Handle window resize more efficiently
+        function updateDimensions() {
+            if (!myDatavizRef.current?.parentElement) return;
+
+            const newWidth =
+                myDatavizRef.current.parentElement.offsetWidth - margin.left - margin.right - 60;
+            const newHeight =
+                myDatavizRef.current.parentElement.offsetHeight - margin.top - margin.bottom - 70;
+
+            if (newWidth <= 0 || newHeight <= 0) return;
+
+            // Update SVG dimensions and viewBox
+            d3.select(myDatavizRef.current)
+                .select("svg")
+                .attr("width", newWidth + margin.left + margin.right)
+                .attr("height", newHeight + margin.top + margin.bottom)
+                .attr(
+                    "viewBox",
+                    `0 0 ${newWidth + margin.left + margin.right} ${newHeight + margin.top + margin.bottom
+                    }`
+                );
+
+            // Update scales
+            x.range([0, newWidth]);
+            y.range([newHeight, 0]);
+
+            // Update axes
+            svg
+                .select(".x-axis")
+                .attr("transform", `translate(0, ${newHeight})`)
+                .call(
+                    d3
+                        .axisBottom(x)
+                        .ticks(9)
+                        .tickSizeOuter(0)
+                        .tickFormat((d) => formatAMPM(d))
+                )
+                .selectAll("text")
+                .style("fill", "white")
+                .style("font-size", newWidth > 500 ? "14px" : "10px");
+
+            svg.select(".y-axis").call(
+                d3
+                    .axisLeft(y)
+                    .ticks(5)
+                    .tickSize(4)
+                    .tickFormat(() => "")
+            );
+
+            // Update clipPath
+            svg
+                .select("clipPath rect")
+                .attr("width", newWidth)
+                .attr("height", newHeight);
+
+            // Update curve and shadow
+            svg.select(".curve").attr(
+                "d",
+                d3
+                    .line()
+                    .x((d) => x(d.hour))
+                    .y((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
+
+            svg.select(".shadow").attr(
+                "d",
+                d3
+                    .area()
+                    .x((d) => x(d.hour))
+                    .y0(newHeight)
+                    .y1((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
+        }
+
+        // Add resize event listener
+        window.addEventListener("resize", updateDimensions);
+
+        return () => {
+            window.removeEventListener("resize", updateDimensions);
+        };
     };
 
 
@@ -542,9 +674,11 @@ const Overview = ({ BaseUrl }) => {
                 </div>
 
                 {/* Right Section */}
-                <div className="rounded mt-2 bg-[#030F0E] p-5" id="grid-it-rl2">
+                <div className="rounded mt-2 p-4 bg-[#030F0E]" id="grid-it-rl2">
                     <div className="flex justify-between mb-4">
-                        <h5 className="text-base xl:text-lg text-white">Energy Consumed Today</h5>
+                        <h5 className="text-base xl:text-lg text-white">
+                            Energy Consumed Today
+                        </h5>
                         {/* <p className="text-[#7A7F7F] text-sm xl:text-base font-normal">Updated 15 min ago</p> */}
                     </div>
 
@@ -554,12 +688,11 @@ const Overview = ({ BaseUrl }) => {
                             {total_daily_kwh} kWh
                         </span>
                     </p>
-                    <div className="mt-4">
+                    <div className="mt-4 h-full">
                         <div
                             id="my_dataviz"
                             ref={myDatavizRef}
-                            className="flex-1 h-[200px] xl:h-[300px]"
-
+                            className="flex-1 h-full"
                         ></div>
                     </div>
                 </div>

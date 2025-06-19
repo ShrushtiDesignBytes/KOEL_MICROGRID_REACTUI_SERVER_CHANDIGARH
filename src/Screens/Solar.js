@@ -19,7 +19,7 @@ const Solar = ({ BaseUrl }) => {
             try {
                 const response = await fetch(`${BaseUrl}/solar/excel`);
                 const result = await response.json();
-               // console.log(result)
+                // console.log(result)
                 setChartData(result);
             } catch (error) {
                 console.error('Error fetching power data:', error);
@@ -40,7 +40,7 @@ const Solar = ({ BaseUrl }) => {
             }
             const data = await response.json();
             const sortedData = data.sort((a, b) => a.id - b.id);
-           // console.log(sortedData)
+            // console.log(sortedData)
             setData(sortedData[sortedData.length - 1]);
             setLoading(false);
         } catch (error) {
@@ -66,7 +66,7 @@ const Solar = ({ BaseUrl }) => {
 
         const interval = setInterval(() => {
             fetchAlerts();
-        }, 5000);
+        }, 900000);
 
         return () => clearInterval(interval);
     }, []);
@@ -75,7 +75,7 @@ const Solar = ({ BaseUrl }) => {
         if (imageLoaded && !loading) {
             displayDataCurveGraph(chartData);
         }
-        
+
     }, [imageLoaded, loading, chartData]);
 
     const handleImageLoad = () => {
@@ -96,119 +96,255 @@ const Solar = ({ BaseUrl }) => {
     };
 
     const displayDataCurveGraph = (data) => {
-        const margin = { top: 10, right: 10, bottom: 40, left: 20 };
-        d3.select(containerRef.current).selectAll('svg').remove();
+        const margin = { top: 10, right: 20, bottom: 40, left: 20 };
+        d3.select(containerRef.current).selectAll("svg").remove();
 
         const container = containerRef.current;
         const width = container.offsetWidth - margin.left - margin.right - 60;
         const height = container.offsetHeight - margin.top - margin.bottom - 70;
 
-        function updateDimensions() {
-            if (!containerRef.current) return;
-
-            svg.attr('width', width + margin.left + margin.right).attr('height', height + margin.top + margin.bottom);
-
-            x.range([0, width]);
-            y.range([height, 0]);
-
-            svg.select('.x-axis')
-                .attr('transform', `translate(0, ${height})`)
-                .call(d3.axisBottom(x).ticks(9).tickSizeOuter(0).tickFormat((d) => formatAMPM(d)))
-                .selectAll('text')
-                .style('fill', 'white').style('font-size', width > 500 ? '14px' : '10px');
-
-            svg.select('.y-axis')
-                .call(d3.axisLeft(y).ticks(5).tickSize(4).tickFormat((d) => ''))
-                .selectAll('text')
-                .style('fill', 'white');
-
-            // Define the curve
-            svg.select('.curve')
-                .attr('d', d3.line().x((d) => x(d.hour)).y((d) => y(+d.kwh_reading)).curve(d3.curveBasis));
-
-            // Define the shadow (area beneath the curve)
-            svg.select('.shadow')
-                .attr('d', d3.area()
-                    .x((d) => x(d.hour))
-                    .y0(height)  // Start from the bottom (X-axis line)
-                    .y1((d) => y(+d.kwh_reading))
-                    .curve(d3.curveBasis)
-                );
-        }
-
-        const svg = d3.select('#my_dataviz').append('svg').attr('width', '100%').attr('height', '100%').append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+        // Create SVG with proper viewBox for responsive scaling
+        const svg = d3
+            .select("#my_dataviz")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr(
+                "viewBox",
+                `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom
+                }`
+            )
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
         const now = new Date();
         const currentHour = now.getHours();
-        const pastHour = currentHour - 8 < 0 ? 24 + (currentHour - 8) : currentHour - 8;
+        const pastHour =
+            currentHour - 8 < 0 ? 24 + (currentHour - 8) : currentHour - 8;
 
-        const x = d3.scaleLinear().domain([pastHour, currentHour]).range([0, 0]);
-        // const x = d3.scaleLinear().domain([8, 16]).range([0, width]);
-        const y = d3.scaleLinear().domain([0, d3.max(data, (d) => +d.kwh_reading)]).nice().range([0, 0]);
+        // Initialize scales with proper ranges from the start
+        const x = d3
+            .scaleLinear()
+            .domain([pastHour, currentHour])
+            .range([0, width]);
+        const y = d3
+            .scaleLinear()
+            .domain([0, d3.max(data, (d) => +d.kwh_reading)])
+            .nice()
+            .range([height, 0]); // Note: correct order for y-scale
 
-        svg.append('g').attr('class', 'x-axis');
-        svg.append('g').attr('class', 'y-axis');
+        // Add axes
+        svg
+            .append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0, ${height})`)
+            .call(
+                d3
+                    .axisBottom(x)
+                    .ticks(9)
+                    .tickSizeOuter(0)
+                    .tickFormat((d) => formatAMPM(d))
+            )
+            .selectAll("text")
+            .style("fill", "white")
+            .style("font-size", width > 500 ? "14px" : "10px");
 
+        svg
+            .append("g")
+            .attr("class", "y-axis")
+            .call(
+                d3
+                    .axisLeft(y)
+                    .ticks(5)
+                    .tickSize(4)
+                    .tickFormat((d) => "")
+            )
+            .selectAll("text")
+            .style("fill", "white");
 
-        // Add clipPath to hide the portion of the curve that goes below the axis
-        svg.append('defs').append('clipPath')
-            .attr('id', 'clip')
-            .append('rect')
-            .attr('width', '100%')
-            .attr('height', height)
-            .attr('x', 0)
-            .attr('y', 0);
+        // Add clipPath with explicit dimensions
+        svg
+            .append("defs")
+            .append("clipPath")
+            .attr("id", "clip")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("x", 0)
+            .attr("y", 0);
 
-        // Apply the clipPath to the curve and shadow
-        svg.append('path')
+        // Apply the gradient
+        const gradient = svg
+            .append("defs")
+            .append("linearGradient")
+            .attr("id", "shadowGradient")
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "0%")
+            .attr("y2", "100%");
+
+        gradient
+            .append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#0A3D38")
+            .attr("stop-opacity", 0.9);
+        gradient
+            .append("stop")
+            .attr("offset", "80%")
+            .attr("stop-color", "#0A3D38")
+            .attr("stop-opacity", 0);
+
+        // Add the curve path
+        svg
+            .append("path")
             .datum(data)
-            .attr('class', 'curve')
-            .attr('fill', 'none')
-            .attr('stroke', '#68BFB6')
-            .attr('stroke-width', 2)
-            .attr('clip-path', 'url(#clip)');  // Clip path applied here
+            .attr("class", "curve")
+            .attr("fill", "none")
+            .attr("stroke", "#68BFB6")
+            .attr("stroke-width", 2)
+            .attr("clip-path", "url(#clip)")
+            .attr(
+                "d",
+                d3
+                    .line()
+                    .x((d) => x(d.hour))
+                    .y((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
 
-        const gradient = svg.append('defs').append('linearGradient')
-            .attr('id', 'shadowGradient')
-            .attr('x1', '0%')
-            .attr('y1', '0%')
-            .attr('x2', '0%')
-            .attr('y2', '100%');
-
-        gradient.append('stop').attr('offset', '0%').attr('stop-color', '#0A3D38').attr('stop-opacity', 0.9);
-        gradient.append('stop').attr('offset', '80%').attr('stop-color', '#0A3D38').attr('stop-opacity', 0);
-
-        svg.append('path')
+        // Add the shadow (area beneath curve)
+        svg
+            .append("path")
             .datum(data)
-            .attr('class', 'shadow')
-            .attr('fill', 'url(#shadowGradient)')
-            .attr('stroke-width', 0)
-            .attr('clip-path', 'url(#clip)');  // Clip path applied here
+            .attr("class", "shadow")
+            .attr("fill", "url(#shadowGradient)")
+            .attr("stroke-width", 0)
+            .attr("clip-path", "url(#clip)")
+            .attr(
+                "d",
+                d3
+                    .area()
+                    .x((d) => x(d.hour))
+                    .y0(height) // Start from the bottom (X-axis line)
+                    .y1((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
 
-        const tooltip = d3.select('body').append('div').attr('class', 'tooltip').style('opacity', 0);
+        // Create tooltip
+        const tooltip = d3
+            .select("body")
+            .append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
 
-        svg.selectAll('.curve, .shadow')
-            .on('mouseover', function (event, d) {
+        // Add event listeners
+        svg
+            .selectAll(".curve, .shadow")
+            .on("mouseover", function (event, d) {
                 const bisect = d3.bisector((d) => d.hour).right;
                 const i = bisect(data, x.invert(d3.pointer(event)[0]));
                 const d0 = data[i - 1];
                 const d1 = data[i];
-                const dHover = x.invert(d3.pointer(event)[0]) - d0.hour > d1.hour - x.invert(d3.pointer(event)[0]) ? d1 : d0;
-                tooltip.transition().duration(200).style('opacity', 0.9);
-                tooltip.html(`Hour: ${formatAMPM(dHover.hour)}, Power: ${dHover.kwh_reading}`).style('left', event.pageX + 'px').style('top', event.pageY - 28 + 'px');
+                const dHover =
+                    x.invert(d3.pointer(event)[0]) - d0.hour >
+                        d1.hour - x.invert(d3.pointer(event)[0])
+                        ? d1
+                        : d0;
+                tooltip.transition().duration(200).style("opacity", 0.9);
+                tooltip
+                    .html(
+                        `Hour: ${formatAMPM(dHover.hour)}, Power: ${dHover.kwh_reading}`
+                    )
+                    .style("left", event.pageX + "px")
+                    .style("top", event.pageY - 28 + "px");
             })
-            .on('mouseout', function () {
-                tooltip.transition().duration(500).style('opacity', 0);
+            .on("mouseout", function () {
+                tooltip.transition().duration(500).style("opacity", 0);
             });
 
-        updateDimensions();
-        window.addEventListener('resize', updateDimensions);
+        // Handle window resize more efficiently
+        function updateDimensions() {
+            if (!containerRef.current) return;
+
+            const newWidth =
+                containerRef.current.offsetWidth - margin.left - margin.right - 60;
+            const newHeight =
+                containerRef.current.offsetHeight - margin.top - margin.bottom - 70;
+
+            // Update SVG dimensions and viewBox
+            d3.select("#my_dataviz svg")
+                .attr("width", newWidth + margin.left + margin.right)
+                .attr("height", newHeight + margin.top + margin.bottom)
+                .attr(
+                    "viewBox",
+                    `0 0 ${newWidth + margin.left + margin.right} ${newHeight + margin.top + margin.bottom
+                    }`
+                );
+
+            // Update scales
+            x.range([0, newWidth]);
+            y.range([newHeight, 0]);
+
+            // Update axes
+            svg
+                .select(".x-axis")
+                .attr("transform", `translate(0, ${newHeight})`)
+                .call(
+                    d3
+                        .axisBottom(x)
+                        .ticks(9)
+                        .tickSizeOuter(0)
+                        .tickFormat((d) => formatAMPM(d))
+                )
+                .selectAll("text")
+                .style("fill", "white")
+                .style("font-size", newWidth > 500 ? "14px" : "10px");
+
+            svg.select(".y-axis").call(
+                d3
+                    .axisLeft(y)
+                    .ticks(5)
+                    .tickSize(4)
+                    .tickFormat((d) => "")
+            );
+
+            // Update clipPath
+            svg
+                .select("clipPath rect")
+                .attr("width", newWidth)
+                .attr("height", newHeight);
+
+            // Update curve and shadow
+            svg.select(".curve").attr(
+                "d",
+                d3
+                    .line()
+                    .x((d) => x(d.hour))
+                    .y((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
+
+            svg.select(".shadow").attr(
+                "d",
+                d3
+                    .area()
+                    .x((d) => x(d.hour))
+                    .y0(newHeight)
+                    .y1((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
+        }
+
+        // Add resize event listener
+        window.addEventListener("resize", updateDimensions);
 
         return () => {
-            window.removeEventListener('resize', updateDimensions);
+            window.removeEventListener("resize", updateDimensions);
         };
     };
 
+    
     const formatAMPM = (hour) => {
         const ampm = hour >= 12 ? 'PM' : 'AM';
         const formattedHour = hour % 12 || 12;
@@ -246,8 +382,8 @@ const Solar = ({ BaseUrl }) => {
                             <div>
                                 <p className="text-xs xl:text-sm text-[#959999] pb-1 m-0">Status</p>
                                 <p className="text-sm xl:text-base m-0">{(data.voltagel.phase1 > 200 && data.voltagel.phase2 > 200 && data.voltagel.phase3 > 200) &&
-                                (data.kW.phase1 >= 1 && data.kW.phase2 >= 1 && data.kW.phase3 >= 1) ? <div className='flex items-center gap-2'><div className='bg-[#30F679] rounded-full w-4 h-4'></div><div className='text-[#30F679]'>Active</div></div> 
-                                : <div className='flex items-center gap-2'><div className='bg-[#DBDBDB] rounded-full w-4 h-4'></div><div className='text-[#DBDBDB]'>Inactive</div></div> }</p>
+                                    (data.kW.phase1 >= 1 && data.kW.phase2 >= 1 && data.kW.phase3 >= 1) ? <div className='flex items-center gap-2'><div className='bg-[#30F679] rounded-full w-4 h-4'></div><div className='text-[#30F679]'>Active</div></div>
+                                    : <div className='flex items-center gap-2'><div className='bg-[#DBDBDB] rounded-full w-4 h-4'></div><div className='text-[#DBDBDB]'>Inactive</div></div>}</p>
                             </div>
                         </div>
                     </div>
@@ -280,7 +416,7 @@ const Solar = ({ BaseUrl }) => {
                         </div>
                         {/* <p className="text-[#AFB2B2] text-xs xl:text-sm mt-3 ">Updated 15 min ago</p> */}
                         {/* <div className="mt-4"> */}
-                            <div id="my_dataviz" className="mt-4 h-[250px] xl:h-[330px]" ></div>
+                        <div id="my_dataviz" className="mt-4 h-[250px] xl:h-[330px]" ></div>
                         {/* </div> */}
                     </div>
                 </div>
@@ -336,7 +472,7 @@ const Solar = ({ BaseUrl }) => {
                                 <div className="flex items-center justify-between mb-2 xl:mb-7">
                                     <img src="assets/Icons (4).svg" alt="icon" />
                                     <h6 className="text-[#F3E5DE] text-sm xl:text-base font-semibold" id="breakerstatus" alt='image'>{(data.voltagel.phase1 > 200 && data.voltagel.phase2 > 200 && data.voltagel.phase3 > 200) &&
-                                (data.kW.phase1 >= 1 && data.kW.phase2 >= 1 && data.kW.phase3 >= 1) ? 'On' : 'Off'}</h6>
+                                        (data.kW.phase1 >= 1 && data.kW.phase2 >= 1 && data.kW.phase3 >= 1) ? 'On' : 'Off'}</h6>
                                 </div>
                                 <p className="text-sm xl:text-base text-[#AFB2B2] text-start">Breaker Status</p>
                             </div>

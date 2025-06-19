@@ -569,6 +569,7 @@ const Excel = ({ BaseUrl }) => {
                                     const updatedDate = new Date(date);
                                     updatedDate.setHours(0, 5, 0, 0); // Ensure the selected date keeps the time at 00:05
                                     setStartDate(updatedDate);
+                                    setShowTable(false);
                                 }}
                                 ref={datepickerRef}
                                 dateFormat="dd.MM.yyyy"
@@ -592,7 +593,10 @@ const Excel = ({ BaseUrl }) => {
                             />
                             <DatePicker
                                 selected={endDate}
-                                onChange={(date) => setEndDate(date)}
+                                onChange={(date) => {
+                                    setEndDate(date)
+                                    setShowTable(false)
+                                }}
                                 ref={datepickerendRef}
                                 dateFormat="dd.MM.yyyy"
                                 className="hidden"

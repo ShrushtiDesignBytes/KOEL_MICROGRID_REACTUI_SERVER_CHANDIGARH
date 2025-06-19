@@ -67,7 +67,7 @@ const Genset = ({ BaseUrl }) => {
 
         const interval = setInterval(() => {
             fetchAlerts();
-        }, 5000);
+        }, 900000);
 
         return () => clearInterval(interval);
     }, []);
@@ -101,53 +101,27 @@ const Genset = ({ BaseUrl }) => {
     };
 
     const displayDataCurveGraph = (data) => {
-        console.log(data)
-        const margin = { top: 10, right: 10, bottom: 40, left: 20 };
+        const margin = { top: 10, right: 20, bottom: 40, left: 20 };
+        d3.select(containerRef.current).selectAll("svg").remove();
 
-        d3.select(containerRef.current).selectAll('svg').remove();
         const container = containerRef.current;
         const width = container.offsetWidth - margin.left - margin.right - 60;
         const height = container.offsetHeight - margin.top - margin.bottom - 70;
 
-        function updateDimensions() {
-            if (!containerRef.current) return;
-
-            svg.attr('width', width + margin.left + margin.right)
-                .attr('height', height + margin.top + margin.bottom);
-
-            x.range([0, width]);
-            y.range([height, 0]);
-
-            svg.select('.x-axis')
-                .attr('transform', `translate(0, ${height})`)
-                .call(d3.axisBottom(x).ticks(6).tickFormat(formatAMPM))
-                .selectAll('text')
-                .style('fill', 'white')
-                .style('font-size', width > 500 ? '14px' : '10px');
-
-            svg.select('.y-axis')
-                .call(d3.axisLeft(y).ticks(5).tickSize(4).tickFormat(() => ''))
-                .selectAll('text')
-                .style('fill', 'white');
-
-            svg.select('.curve')
-                .attr('d', d3.line().x((d) => x(d.hour)).y((d) => y(+d.kwh_reading)).curve(d3.curveBasis));
-
-            svg.select('.shadow')
-                .attr('d', d3.area()
-                    .x((d) => x(d.hour))
-                    .y0(height)
-                    .y1((d) => y(+d.kwh_reading))
-                    .curve(d3.curveBasis)
-                );
-        }
-
-        const svg = d3.select('#my_dataviz')
-            .append('svg')
-            .attr('width', '100%')
-            .attr('height', '100%')
-            .append('g')
-            .attr('transform', `translate(${margin.left},${margin.top})`);
+        // Create SVG with proper viewBox for responsive scaling
+        const svg = d3
+            .select("#my_dataviz")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr(
+                "viewBox",
+                `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom
+                }`
+            )
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
         const now = new Date();
         const currentHour = now.getHours();
@@ -163,91 +137,233 @@ const Genset = ({ BaseUrl }) => {
             }
         });
 
-        const x = d3.scaleLinear()
-            .domain([pastHour, currentHour < pastHour ? currentHour + 24 : currentHour])
+        // Initialize scales with proper ranges from the start
+        const x = d3
+            .scaleLinear()
+            .domain([
+                pastHour,
+                currentHour < pastHour ? currentHour + 24 : currentHour,
+            ])
             .range([0, width]);
 
-        const y = d3.scaleLinear()
+        const y = d3
+            .scaleLinear()
             .domain([0, d3.max(filteredData, (d) => +d.kwh_reading)])
             .nice()
             .range([height, 0]);
 
-        svg.append('g')
-            .attr('class', 'x-axis')
-            .attr('transform', `translate(0,${height})`)
-            .call(d3.axisBottom(x)
-                .ticks(6)
-                .tickFormat((d) => formatAMPM(d % 24))
+        // Add axes
+        svg
+            .append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0, ${height})`)
+            .call(
+                d3
+                    .axisBottom(x)
+                    .ticks(6)
+                    .tickFormat((d) => formatAMPM(d % 24))
+            )
+            .selectAll("text")
+            .style("fill", "white")
+            .style("font-size", width > 500 ? "14px" : "10px");
+
+        svg
+            .append("g")
+            .attr("class", "y-axis")
+            .call(
+                d3
+                    .axisLeft(y)
+                    .ticks(5)
+                    .tickSize(4)
+                    .tickFormat(() => "")
+            )
+            .selectAll("text")
+            .style("fill", "white");
+
+        // Add clipPath with explicit dimensions
+        svg
+            .append("defs")
+            .append("clipPath")
+            .attr("id", "clip")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("x", 0)
+            .attr("y", 0);
+
+        // Apply the gradient
+        const gradient = svg
+            .append("defs")
+            .append("linearGradient")
+            .attr("id", "shadowGradient")
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "0%")
+            .attr("y2", "100%");
+
+        gradient
+            .append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#0A3D38")
+            .attr("stop-opacity", 0.9);
+        gradient
+            .append("stop")
+            .attr("offset", "80%")
+            .attr("stop-color", "#0A3D38")
+            .attr("stop-opacity", 0);
+
+        // Add the curve path
+        svg
+            .append("path")
+            .datum(filteredData)
+            .attr("class", "curve")
+            .attr("fill", "none")
+            .attr("stroke", "#68BFB6")
+            .attr("stroke-width", 2)
+            .attr("clip-path", "url(#clip)")
+            .attr(
+                "d",
+                d3
+                    .line()
+                    .x((d) => x(d.hour >= pastHour ? d.hour : d.hour + 24))
+                    .y((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
             );
 
-        svg.append('g')
-            .attr('class', 'y-axis')
-            .call(d3.axisLeft(y));
-
-        svg.append('path')
+        // Add the shadow (area beneath curve)
+        svg
+            .append("path")
             .datum(filteredData)
-            .attr('class', 'curve')
-            .attr('fill', 'none')
-            .attr('stroke', '#68BFB6')
-            .attr('stroke-width', 2)
-            .attr('d', d3.line()
-                .x((d) => x(d.hour >= pastHour ? d.hour : d.hour + 24))
-                .y((d) => y(+d.kwh_reading))
-                .curve(d3.curveBasis)
-            )
-            .attr('clip-path', 'url(#clip)');
+            .attr("class", "shadow")
+            .attr("fill", "url(#shadowGradient)")
+            .attr("stroke-width", 0)
+            .attr("clip-path", "url(#clip)")
+            .attr(
+                "d",
+                d3
+                    .area()
+                    .x((d) => x(d.hour >= pastHour ? d.hour : d.hour + 24))
+                    .y0(height)
+                    .y1((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
 
-        const gradient = svg.append('defs').append('linearGradient')
-            .attr('id', 'shadowGradient')
-            .attr('x1', '0%')
-            .attr('y1', '0%')
-            .attr('x2', '0%')
-            .attr('y2', '100%');
+        // Create tooltip
+        const tooltip = d3
+            .select("body")
+            .append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
 
-        gradient.append('stop').attr('offset', '0%').attr('stop-color', '#0A3D38').attr('stop-opacity', 0.9);
-        gradient.append('stop').attr('offset', '80%').attr('stop-color', '#0A3D38').attr('stop-opacity', 0);
-
-
-        svg.append('path')
-            .datum(filteredData)
-            .attr('class', 'shadow')
-            .attr('fill', 'url(#shadowGradient)')
-            .attr('d', d3.area()
-                .x((d) => x(d.hour >= pastHour ? d.hour : d.hour + 24))
-                .y0(height)
-                .y1((d) => y(+d.kwh_reading))
-                .curve(d3.curveBasis)
-            )
-            .attr('clip-path', 'url(#clip)');
-
-        const tooltip = d3.select('body').append('div').attr('class', 'tooltip').style('opacity', 0);
-
-        svg.selectAll('.curve, .shadow')
-            .on('mouseover', function (event, d) {
+        // Add event listeners
+        svg
+            .selectAll(".curve, .shadow")
+            .on("mouseover", function (event, d) {
                 const bisect = d3.bisector((d) => d.hour).right;
                 const i = bisect(data, x.invert(d3.pointer(event)[0]));
                 const d0 = data[i - 1];
                 const d1 = data[i];
-                const dHover = x.invert(d3.pointer(event)[0]) - d0.hour > d1.hour - x.invert(d3.pointer(event)[0]) ? d1 : d0;
-                tooltip.transition().duration(200).style('opacity', 0.9);
-                tooltip.html(`Hour: ${formatAMPM(dHover.hour)}, Power: ${dHover.kwh_reading}`).style('left', event.pageX + 'px').style('top', event.pageY - 28 + 'px');
+                const dHover =
+                    x.invert(d3.pointer(event)[0]) - d0.hour >
+                        d1.hour - x.invert(d3.pointer(event)[0])
+                        ? d1
+                        : d0;
+                tooltip.transition().duration(200).style("opacity", 0.9);
+                tooltip
+                    .html(
+                        `Hour: ${formatAMPM(dHover.hour)}, Power: ${dHover.kwh_reading}`
+                    )
+                    .style("left", event.pageX + "px")
+                    .style("top", event.pageY - 28 + "px");
             })
-            .on('mouseout', function () {
-                tooltip.transition().duration(500).style('opacity', 0);
+            .on("mouseout", function () {
+                tooltip.transition().duration(500).style("opacity", 0);
             });
 
         function formatAMPM(hour) {
             hour = hour % 24;
             const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
-            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const ampm = hour >= 12 ? "PM" : "AM";
             return `${formattedHour}${ampm}`;
         }
 
-        updateDimensions();
-        window.addEventListener('resize', updateDimensions);
+        // Handle window resize more efficiently
+        function updateDimensions() {
+            if (!containerRef.current) return;
+
+            const newWidth =
+                containerRef.current.offsetWidth - margin.left - margin.right - 60;
+            const newHeight =
+                containerRef.current.offsetHeight - margin.top - margin.bottom - 70;
+
+            // Update SVG dimensions and viewBox
+            d3.select("#my_dataviz svg")
+                .attr("width", newWidth + margin.left + margin.right)
+                .attr("height", newHeight + margin.top + margin.bottom)
+                .attr(
+                    "viewBox",
+                    `0 0 ${newWidth + margin.left + margin.right} ${newHeight + margin.top + margin.bottom
+                    }`
+                );
+
+            // Update scales
+            x.range([0, newWidth]);
+            y.range([newHeight, 0]);
+
+            // Update axes
+            svg
+                .select(".x-axis")
+                .attr("transform", `translate(0, ${newHeight})`)
+                .call(
+                    d3
+                        .axisBottom(x)
+                        .ticks(6)
+                        .tickFormat((d) => formatAMPM(d % 24))
+                )
+                .selectAll("text")
+                .style("fill", "white")
+                .style("font-size", newWidth > 500 ? "14px" : "10px");
+
+            svg.select(".y-axis").call(
+                d3
+                    .axisLeft(y)
+                    .ticks(5)
+                    .tickSize(4)
+                    .tickFormat(() => "")
+            );
+
+            // Update clipPath
+            svg
+                .select("clipPath rect")
+                .attr("width", newWidth)
+                .attr("height", newHeight);
+
+            // Update curve and shadow
+            svg.select(".curve").attr(
+                "d",
+                d3
+                    .line()
+                    .x((d) => x(d.hour >= pastHour ? d.hour : d.hour + 24))
+                    .y((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
+
+            svg.select(".shadow").attr(
+                "d",
+                d3
+                    .area()
+                    .x((d) => x(d.hour >= pastHour ? d.hour : d.hour + 24))
+                    .y0(newHeight)
+                    .y1((d) => y(+d.kwh_reading))
+                    .curve(d3.curveBasis)
+            );
+        }
+
+        // Add resize event listener
+        window.addEventListener("resize", updateDimensions);
 
         return () => {
-            window.removeEventListener('resize', updateDimensions);
+            window.removeEventListener("resize", updateDimensions);
         };
     };
 

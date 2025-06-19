@@ -54,7 +54,7 @@ const Alert = ({BaseUrl}) => {
     
         const interval = setInterval(() => {
             fetchNotifications();
-        }, 5000);
+        }, 900000);
     
         return () => clearInterval(interval); 
       }, []);

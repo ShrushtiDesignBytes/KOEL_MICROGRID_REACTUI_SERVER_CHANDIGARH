@@ -5,6 +5,8 @@ module.exports = {
     extend: {
       screens: {
         'xl': '1920px',  // Setting 1920px as the xl breakpoint
+        '2xl': '2560px', // Optional: Add higher resolutions
+        '3xl': '3840px', // 4K
       },
       fontFamily: {
         poppins: ['Poppins', 'sans-serif'], // Add Poppins font

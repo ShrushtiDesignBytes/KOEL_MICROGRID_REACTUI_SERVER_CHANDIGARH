@@ -15,11 +15,13 @@ const Solar = ({ BaseUrl }) => {
     const [chartData, setChartData] = useState([]);
 
     useEffect(() => {
+        let interval = null;
+
         const fetchPowerData = async () => {
             try {
-                const response = await fetch(`${BaseUrl}/solar/excel`);
+                const response = await fetch(`${BaseUrl}/solar/excel`)
                 const result = await response.json();
-                // console.log(result)
+                //  console.log(result)
                 setChartData(result);
             } catch (error) {
                 console.error('Error fetching power data:', error);
@@ -27,9 +29,22 @@ const Solar = ({ BaseUrl }) => {
         };
 
         fetchPowerData();
-        const interval = setInterval(fetchPowerData, 15 * 60 * 1000); // 15 minutes
 
-        return () => clearInterval(interval);
+        const now = new Date();
+        const millisecondsUntilNextHour = ((60 - now.getMinutes()) * 60 - now.getSeconds()) * 1000;
+
+        // Set timeout for the first synchronized fetch
+        const initialTimeout = setTimeout(() => {
+            fetchPowerData(); // Fetch at the top of the hour
+
+            // Now set regular hourly interval
+            interval = setInterval(fetchPowerData, 60 * 60 * 1000); // 1 hour
+        }, millisecondsUntilNextHour);
+
+        return () => {
+            clearTimeout(initialTimeout);
+            if (interval) clearInterval(interval);
+        };
     }, []);
 
     const fetchAlerts = async () => {
@@ -344,7 +359,7 @@ const Solar = ({ BaseUrl }) => {
         };
     };
 
-    
+
     const formatAMPM = (hour) => {
         const ampm = hour >= 12 ? 'PM' : 'AM';
         const formattedHour = hour % 12 || 12;
@@ -432,7 +447,7 @@ const Solar = ({ BaseUrl }) => {
                                     <img src="assets/Icons.svg" alt="icon" />
                                     <h6 className="text-[#F3E5DE] text-sm xl:text-base font-semibold" id="power-generated" alt='image'>{data.power_generated_yesterday?.toFixed(2) || 0}</h6>
                                 </div>
-                                <p className="text-sm xl:text-base text-[#AFB2B2] text-start">Power Generated Yesterday(kW)</p>
+                                <p className="text-sm xl:text-base 2xl:text-lg 3xl:text-xl text-[#AFB2B2] text-start">Power Generated Yesterday(kW)</p>
                             </div>
                             <div className="bg-[#051e1c] rounded-md mb-2 p-2 gap-3 flex flex-col justify-between">
                                 <div className="flex items-center justify-between mb-2 xl:mb-7">

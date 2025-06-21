@@ -19,6 +19,8 @@ const Overview = ({ BaseUrl }) => {
     const chartRef = useRef();
 
     useEffect(() => {
+        let interval = null;
+
         const fetchPowerData = async () => {
             try {
                 const response = await fetch(`${BaseUrl}/overview/chart`, {
@@ -29,7 +31,7 @@ const Overview = ({ BaseUrl }) => {
                     body: JSON.stringify({})
                 });
                 const result = await response.json();
-                //  console.log(result)
+                console.log(result)
                 setChartData(result);
             } catch (error) {
                 console.error('Error fetching power data:', error);
@@ -37,11 +39,23 @@ const Overview = ({ BaseUrl }) => {
         };
 
         fetchPowerData();
-        const interval = setInterval(fetchPowerData, 15 * 60 * 1000); // 15 minutes
 
-        return () => clearInterval(interval);
+        const now = new Date();
+        const millisecondsUntilNextHour = ((60 - now.getMinutes()) * 60 - now.getSeconds()) * 1000;
+
+        // Set timeout for the first synchronized fetch
+        const initialTimeout = setTimeout(() => {
+            fetchPowerData(); // Fetch at the top of the hour
+
+            // Now set regular hourly interval
+            interval = setInterval(fetchPowerData, 60 * 60 * 1000); // 1 hour
+        }, millisecondsUntilNextHour);
+
+        return () => {
+            clearTimeout(initialTimeout);
+            if (interval) clearInterval(interval);
+        };
     }, []);
-
 
     const fetchConfig = () => {
         fetch(`${BaseUrl}/overview`)

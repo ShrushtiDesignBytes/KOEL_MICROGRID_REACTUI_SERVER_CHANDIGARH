@@ -316,8 +316,8 @@ const Genset = ({ BaseUrl }) => {
                 .selectAll("text")
                 .style("fill", "white")
                 .style("font-size", function () {
-                if (width > 1000) return "18px";
-                else if (width > 500) return "16px";
+                if (width > 600) return "18px";
+                else if (width > 400) return "14px";
                 else return "10px";
             });
     

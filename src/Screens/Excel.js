@@ -530,11 +530,11 @@ const Excel = ({ BaseUrl }) => {
     return (
 
         <div className="h-screen">
-            <div className='text-[#F3E5DE] text-sm pl-4'>Reports</div>
+            <div className='text-[#F3E5DE] text-sm xl:text-base 2xl:text-xl pl-4'>Reports</div>
             <div className="flex gap-10 p-4 text-[#CACCCC] font-poppins">
                 {/* Energy Source Dropdown */}
                 <div className="flex flex-col">
-                    <label className="text-sm mb-3 text-[#959999]">Energy Source</label>
+                    <label className="text-sm xl:text-base 2xl:text-xl mb-3 text-[#959999]">Energy Source</label>
                     <select
                         className="bg-[#0A3D38] text-white p-2 rounded-md w-60"
                         onChange={handleEnergySourceChange}
@@ -549,7 +549,7 @@ const Excel = ({ BaseUrl }) => {
 
                 {/* Date Range Picker */}
                 <div className="flex flex-col">
-                    <label className="text-sm mb-3 text-[#959999]">Date Range</label>
+                    <label className="text-sm xl:text-base 2xl:text-xl mb-3 text-[#959999]">Date Range</label>
                     <div className='flex'>
                         <div className="relative flex justify-between items-center bg-[#0A3D38] text-white p-2 rounded-md w-52">
                             <input
@@ -609,7 +609,7 @@ const Excel = ({ BaseUrl }) => {
 
                 {/* Category Dropdown */}
                 <div className="flex flex-col">
-                    <label className="text-sm mb-3 text-[#959999]">Category</label>
+                    <label className="text-sm xl:text-base 2xl:text-xl mb-3 text-[#959999]">Category</label>
                     <select
                         className="bg-[#0A3D38] text-white p-2 rounded-md w-60"
                         value={category}
@@ -621,7 +621,7 @@ const Excel = ({ BaseUrl }) => {
                 </div>
             </div>
             <div className='p-4 flex justify-between'>
-                <div className='py-2 text-[#7A7F7F] text-sm'>
+                <div className='py-2 text-[#7A7F7F] text-sm xl:text-base 2xl:text-xl'>
                     {showTable ? `${tableData.length} results` : '0 results'}
                 </div>
                 <div className="flex gap-3">
@@ -633,7 +633,7 @@ const Excel = ({ BaseUrl }) => {
                         disabled={isLoadingV}
                     >
 
-                        <p className='text-[#031210] text-sm'>{isLoadingV ? "Loading..." : "View "}</p>
+                        <p className='text-[#031210] text-sm xl:text-base 2xl:text-xl'>{isLoadingV ? "Loading..." : "View "}</p>
                         <div
                             className={`transition-transform text-white pl-2`}
                         >
@@ -650,7 +650,7 @@ const Excel = ({ BaseUrl }) => {
                         disabled={isLoading}
                     >
 
-                        <p className='text-[#031210] text-sm'>{isLoading ? "Downloading..." : "Export "}</p>
+                        <p className='text-[#031210] text-sm xl:text-base 2xl:text-xl'>{isLoading ? "Downloading..." : "Export "}</p>
                         <div
                             className={`transition-transform ${isLoading ? "rotate-180" : ""
                                 } text-white`}
@@ -663,9 +663,9 @@ const Excel = ({ BaseUrl }) => {
                 </div>
             </div>
             {Array.isArray(tableData) && tableData.length > 0 && showTable && (
-                <div className="max-h-[420px] xl:max-h-[650px] overflow-hidden rounded-lg p-4">
-                    <div className="overflow-y-auto max-h-[400px] xl:max-h-[600px] scrollbar-hide rounded-lg">
-                        <table className="w-full text-sm text-center bg-[#030F0E]">
+                <div className="h-[430px] xl:h-[calc(100vh-330px)] 2xl:h-[calc(100vh-360px)] overflow-hidden rounded-lg p-4">
+                    <div className="overflow-y-auto h-[430px] xl:h-[calc(100vh-330px)] 2xl:h-[calc(100vh-360px)] scrollbar-hide rounded-lg">
+                        <table className="w-full text-sm xl:text-base 2xl:text-xl text-center bg-[#030F0E]">
                             <thead className="bg-[#051E1C] text-[#68BFB6] text-[1rem] sticky top-0 z-10">
                                 <tr>
                                     {headers.map((header, index) => (

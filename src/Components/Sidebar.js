@@ -24,22 +24,22 @@ const Sidebar = () => {
       <ul className="flex flex-col items-center space-y-6">
         <li className="my-3">
           <Link to="/">
-            <img src="./assets/Logo_N.png" alt="Dashboard" className="w-4 h-6" />
+            <img src="./assets/Logo_N.png" alt="Dashboard" className="w-4 h-6 2xl:w-5 2xl:h-8" />
           </Link>
         </li>
-        <li className="mt-2">
+        <li className="mt-2 2xl:mt-3">
           <Link to={path}>
-          <FiPieChart color='white' className='w-5 h-5'/>
+          <FiPieChart color='white' className='w-5 h-5 2xl:w-6 2xl:h-6'/>
           </Link>
         </li>
-        <li className="mt-2">
+        <li className="mt-2 2x:mt-3">
           <Link to="/excel">
-          <img src="./assets/Rename.png" alt="Dashboard" className="w-4 h-5" />
+          <img src="./assets/Rename.png" alt="Dashboard" className="w-5 h-5 2xl:w-6 2xl:h-6" />
           </Link>
         </li>
-        <li className="mt-2">
+        <li className="mt-2 2xl:mt-3">
           <Link to="#">
-          <LuSettings color='#7A7F7F' className='w-5 h-5'/>
+          <LuSettings color='#7A7F7F' className='w-5 h-5 2xl:w-6 2xl:h-6'/>
           </Link>
         </li>
         {/* 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 const ProgressBar = ({ fuellevel }) => {
- // console.log("Received value:", fuellevel);
+  // console.log("Received value:", fuellevel);
 
   const ref = useRef();
   const [filledValue, setFilledValue] = useState(1);
@@ -32,18 +32,35 @@ const ProgressBar = ({ fuellevel }) => {
     calculateFilledBars(fuellevel);
     drawChart();
   }, [fuellevel, filledValue]);
-  
+
 
   const drawChart = () => {
-   // console.log(window.innerWidth, window.innerHeight)
-    const svgWidth = window.innerWidth >= 1900 ? 280 : 200;
-    const svgHeight = window.innerHeight >= 900 ? 180 : 120;
-    const lineHeightIncrement = window.innerWidth >= 1900 ? 12 : 8;
+    // console.log(window.innerWidth, window.innerHeight)
+    let svgWidth, svgHeight, lineHeightIncrement, rectWidth;
+
+    // Check for 4K resolution first
+    if (window.innerWidth >= 2500) {
+      svgWidth = 360;
+      svgHeight = 200;
+      lineHeightIncrement = 18;
+      rectWidth = 34;
+    } else if (window.innerWidth >= 1900) {
+      svgWidth = 200;
+      svgHeight = 180;
+      lineHeightIncrement = 12;
+      rectWidth = 20;
+    } else {
+      svgWidth = 170;
+      svgHeight = 90;
+      lineHeightIncrement = 7;
+      rectWidth = 14;
+    }
+
     const numberOfLines = 8;
     const emptyColor = "#606060";
-    const rectWidth = window.innerWidth >= 1900 ? 24 :18;
     const rectRadius = 4;
     const gap = 5;
+
 
     // Clear the previous SVG content
     d3.select(ref.current).select("svg").remove();
@@ -76,8 +93,7 @@ const ProgressBar = ({ fuellevel }) => {
       .append("g")
       .attr(
         "transform",
-        `translate(${(svgWidth - (numberOfLines * (rectWidth + gap))) / 2}, ${
-          svgHeight - 20
+        `translate(${(svgWidth - (numberOfLines * (rectWidth + gap))) / 2}, ${svgHeight - 20
         })`
       );
 

@@ -76,13 +76,13 @@ const Alert = ({BaseUrl}) => {
                 <div className="text-white text-xl font-bold">
                     <div className="mb-2 flex justify-between mt-5">
                         <span>Notifications</span>
-                        <button className="border-2 border-[#24514D] rounded-lg px-4 py-2 text-[#68BFB6] text-base flex items-center bg-transparent p-1">
+                        <button className="border-2 border-[#24514D] rounded-lg px-4 py-2 text-[#68BFB6] text-base 2xl:text-lg flex items-center bg-transparent p-1">
                             All
                             <img src="assets/Polygon 1.png" alt="" className="ml-2" />
                         </button>
                     </div>
-                    <div className="max-h-[500px] xl:max-h-[710px] overflow-y-auto rounded-lg scrollbar-custom">
-                        <table className="w-full border-collapse text-[#CACCCC] text-xs xl:text-sm text-start">
+                    <div className="h-[500px] xl:h-[calc(100vh-250px)] 2xl:h-[calc(100vh-300px)] overflow-y-auto rounded-lg scrollbar-custom">
+                        <table className="w-full border-collapse text-[#CACCCC] text-xs xl:text-sm 2xl:text-lg text-start">
                             <thead className="bg-[#051E1C] text-left sticky top-0 z-20 text-[#68BFB6]">
                                 <tr>
                                     <th className="px-4 xl:px-5 py-3 xl:py-4 whitespace-nowrap">Fault Code</th>
